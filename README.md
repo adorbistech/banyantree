@@ -1,3 +1,5 @@
+![BanyanTree](assets/logo.png)
+
 # BanyanTree
 
 > Remembers WHY your code is the way it is — not just what it is.

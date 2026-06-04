@@ -59,11 +59,19 @@ if (Test-Path (Join-Path $InstallDir ".git")) {
   Set-Location $InstallDir
   git pull origin main
   Ok "Updated."
+} elseif (Test-Path $InstallDir) {
+  Step "Removing incomplete installation..."
+  Remove-Item -Recurse -Force $InstallDir
+  Step "Cloning BanyanTree..."
+  New-Item -ItemType Directory -Force -Path (Split-Path $InstallDir -Parent) | Out-Null
+  git clone $RepoUrl $InstallDir
+  if (-not (Test-Path $InstallDir)) { Err "Clone failed." }
+  Ok "Cloned to: $InstallDir"
 } else {
   Step "Cloning BanyanTree..."
   New-Item -ItemType Directory -Force -Path (Split-Path $InstallDir -Parent) | Out-Null
   git clone $RepoUrl $InstallDir
-  if (-not (Test-Path $InstallDir)) { Err "Clone failed. Check your internet connection." }
+  if (-not (Test-Path $InstallDir)) { Err "Clone failed." }
   Ok "Cloned to: $InstallDir"
 }
 
@@ -126,6 +134,7 @@ Ok "BanyanTree installed successfully."
 Write-Host ""
 Info "Installation: $InstallDir"
 Info "Data:         $DataDir"
+Info "Logo: $InstallDir\assets\logo.png"
 Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor White
 Write-Host "  1. Open a NEW PowerShell window" -ForegroundColor White
