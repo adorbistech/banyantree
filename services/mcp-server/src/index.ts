@@ -1,27 +1,8 @@
 #!/usr/bin/env node
 /**
- * BanyanTree MCP Server
- *
- * Block 7. The final block. The cognitive loop closes here.
- *
- * After this file, the full loop is operational:
- * 1. Developer works → file watcher observes
- * 2. Parser extracts structure → graph engine stores entities
- * 3. Memory engine accumulates session signals
- * 4. Developer opens a file → Claude calls get_file_context()
- * 5. MCP server returns full cognition packet
- * 6. Claude responds with context it was never explicitly given
- * 7. The aha moment happens
- *
- * Transport: stdio (standard MCP protocol)
- * This is what Claude Code and Cursor connect to.
- *
- * Security: read-only tools only. No filesystem access.
- * Every tool call logged to security audit trail.
- *
- * From AI_BOUNDARIES.md:
- * "AI cannot write, delete, or mutate anything."
- * "Everything flows through policy → graph → memory → curated retrieval."
+ * BanyanTree MCP Server — Block 7
+ * Secure cognition exposure layer for Claude.
+ * Read-only tools only. No filesystem access.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
@@ -31,55 +12,73 @@ import {
   CallToolRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 import Database from 'better-sqlite3'
-import { readFileSync, existsSync } from 'fs'
+import { existsSync, readFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import { homedir, platform } from 'os'
 import { BANYAN_TOOLS } from './tools.js'
 import { handleToolCall } from './handlers.js'
-import { loadConfig } from '../../apps/desktop-runtime/src/config.js'
 
 const VERSION = '0.1.0'
 const SERVER_NAME = 'banyantree'
 
-// ============================================================
-// STARTUP
-// ============================================================
+// ── Inline config loading (avoids cross-package import path issues) ──
+function getDataDir(): string {
+  const os = platform()
+  if (os === 'win32') {
+    return join(process.env['PROGRAMDATA'] ?? 'C:\\ProgramData', 'Adorbis', 'BanyanTree')
+  }
+  if (os === 'darwin') {
+    return join(homedir(), 'Library', 'Application Support', 'BanyanTree')
+  }
+  return join(process.env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config'), 'banyantree')
+}
 
+function loadConfig() {
+  const dataDir = getDataDir()
+  const configPath = join(dataDir, 'config.json')
+  if (!existsSync(configPath)) {
+    return { activeRepo: null, dbPath: join(dataDir, 'cognition.db'), mcpPort: 7842 }
+  }
+  try {
+    return JSON.parse(readFileSync(configPath, 'utf8'))
+  } catch {
+    return { activeRepo: null, dbPath: join(dataDir, 'cognition.db'), mcpPort: 7842 }
+  }
+}
+
+// ── Startup ──────────────────────────────────────────────────
 async function main(): Promise<void> {
-  const config = await loadConfig()
+  const config = loadConfig()
 
   if (!config.activeRepo) {
-    process.stderr.write(
-      '[BANYAN MCP] No active repository configured.\n' +
-      "[BANYAN MCP] Run 'banyan init <path>' first.\n"
-    )
+    process.stderr.write('[BANYAN MCP] No active repository. Run banyan init <path> first.\n')
     process.exit(1)
   }
 
   if (!existsSync(config.dbPath)) {
-    process.stderr.write(
-      `[BANYAN MCP] Database not found: ${config.dbPath}\n` +
-      "[BANYAN MCP] Run 'banyan init <path>' to initialise.\n"
-    )
+    process.stderr.write(`[BANYAN MCP] Database not found: ${config.dbPath}\n`)
+    process.stderr.write('[BANYAN MCP] Run banyan init <path> to initialise.\n')
     process.exit(1)
   }
 
-  // Open database (read-write for audit logging, read-only for data)
-  const db = new Database(config.dbPath)
+  const db = new Database(config.dbPath) as any
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
-  db.pragma('synchronous = NORMAL')
 
-  // Get repo ID from the database
-  const repoRow = db.prepare(
+  // Get or create repo record
+  let repoRow = db.prepare(
     "SELECT id FROM repositories WHERE path = ? AND status = 'active'"
   ).get(config.activeRepo) as { id: string } | undefined
 
   if (!repoRow) {
-    process.stderr.write(
-      `[BANYAN MCP] Repository not registered: ${config.activeRepo}\n` +
-      "[BANYAN MCP] Run 'banyan init <path>' to register it.\n"
-    )
-    process.exit(1)
+    // Auto-register repo if not in DB yet
+    const { v4: uuidv4 } = await import('uuid')
+    const repoId = uuidv4()
+    db.prepare(`
+      INSERT OR IGNORE INTO repositories (id, path, name, status, created_at, last_active, node_count)
+      VALUES (?, ?, ?, 'active', ?, ?, 0)
+    `).run(repoId, config.activeRepo, config.activeRepo.split(/[/\\]/).pop(), Date.now(), Date.now())
+    repoRow = { id: repoId }
   }
 
   const toolCtx = {
@@ -89,55 +88,35 @@ async function main(): Promise<void> {
     sessionId: null as string | null,
   }
 
-  process.stderr.write(
-    `[BANYAN MCP] v${VERSION} starting\n` +
-    `[BANYAN MCP] Repository: ${config.activeRepo}\n` +
-    `[BANYAN MCP] Transport: stdio\n` +
-    `[BANYAN MCP] Tools: ${BANYAN_TOOLS.length}\n`
-  )
-
-  // ============================================================
-  // MCP SERVER
-  // ============================================================
+  process.stderr.write(`[BANYAN MCP] v${VERSION} starting\n`)
+  process.stderr.write(`[BANYAN MCP] Repository: ${config.activeRepo}\n`)
+  process.stderr.write(`[BANYAN MCP] Transport: stdio\n`)
+  process.stderr.write(`[BANYAN MCP] Tools: ${BANYAN_TOOLS.length}\n`)
 
   const server = new Server(
     { name: SERVER_NAME, version: VERSION },
     { capabilities: { tools: {} } }
   )
 
-  // ── List tools ──────────────────────────────────────────────
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-      tools: BANYAN_TOOLS.map(t => ({
-        name: t.name,
-        description: t.description,
-        inputSchema: t.inputSchema,
-      })),
-    }
-  })
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: BANYAN_TOOLS.map(t => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    })),
+  }))
 
-  // ── Call tool ───────────────────────────────────────────────
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     const { name, arguments: args } = request.params
-
-    process.stderr.write(`[BANYAN MCP] Tool called: ${name}\n`)
-
-    const result = await handleToolCall(
-      name,
-      (args ?? {}) as Record<string, unknown>,
-      toolCtx
-    )
-
-    return result
+    process.stderr.write(`[BANYAN MCP] Tool: ${name}\n`)
+    return await handleToolCall(name, (args ?? {}) as Record<string, unknown>, toolCtx)
   })
 
-  // ── Transport ───────────────────────────────────────────────
   const transport = new StdioServerTransport()
   await server.connect(transport)
 
   process.stderr.write('[BANYAN MCP] Connected. Ready for Claude.\n')
 
-  // Graceful shutdown
   process.on('SIGINT', () => {
     process.stderr.write('[BANYAN MCP] Shutting down.\n')
     db.close()
