@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "banyantree": {
+      "command": "node",
+      "args": ["${workspaceFolder}/services/mcp-server/dist/index.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}

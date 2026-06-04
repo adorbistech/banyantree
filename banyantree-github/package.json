@@ -1,0 +1,29 @@
+{
+  "name": "banyantree",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first repository cognition runtime — remembers WHY your code is the way it is",
+  "packageManager": "npm@10.9.7",
+  "workspaces": [
+    "apps/*",
+    "core/*",
+    "services/*",
+    "agents/*"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "build:turbo": "turbo run build",
+    "dev": "node apps/desktop-runtime/dist-flat/apps/desktop-runtime/src/index.js",
+    "runtime": "node apps/desktop-runtime/dist-flat/apps/desktop-runtime/src/index.js",
+    "mcp": "node apps/desktop-runtime/dist-flat/services/mcp-server/src/index.js",
+    "banyan": "node apps/desktop-runtime/dist-flat/apps/cli/src/index.js"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

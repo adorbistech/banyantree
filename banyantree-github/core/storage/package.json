@@ -1,0 +1,17 @@
+{
+  "name": "@banyantree/storage",
+  "version": "0.1.0",
+  "description": "BanyanTree SQLite storage layer — schema, types, database adapter",
+  "type": "module",
+  "main": "dist/db.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "typescript": "^5.4.0"
+  }
+}
