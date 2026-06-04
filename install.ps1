@@ -1,5 +1,5 @@
-# ============================================================
-# BanyanTree Installer — Windows PowerShell
+﻿# ============================================================
+# BanyanTree Installer â€” Windows PowerShell
 # ============================================================
 # Usage (paste in PowerShell):
 #   irm https://raw.githubusercontent.com/adorbis/banyantree/main/install.ps1 | iex
@@ -17,9 +17,9 @@
 #   7. Installs VS Code extension if VS Code is present
 # ============================================================
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
-# ── Output helpers ────────────────────────────────────────────
+# â”€â”€ Output helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Info($msg)    { Write-Host "[BANYAN] $msg" -ForegroundColor Cyan }
 function Ok($msg)      { Write-Host "[BANYAN OK] $msg" -ForegroundColor Green }
 function Warn($msg)    { Write-Host "[BANYAN WARN] $msg" -ForegroundColor Yellow }
@@ -31,7 +31,7 @@ Info "Persistent Repository Cognition Runtime"
 Info "Version: 0.1.0"
 Write-Host ""
 
-# ── Install paths ─────────────────────────────────────────────
+# â”€â”€ Install paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $AppData     = $env:APPDATA
 $InstallDir  = Join-Path $AppData "BanyanTree\runtime"
 $DataDir     = Join-Path $AppData "BanyanTree"
@@ -42,7 +42,7 @@ New-Item -ItemType Directory -Force -Path $DataDir  | Out-Null
 New-Item -ItemType Directory -Force -Path $LogDir   | Out-Null
 New-Item -ItemType Directory -Force -Path $BinDir   | Out-Null
 
-# ── Check / install Node.js ───────────────────────────────────
+# â”€â”€ Check / install Node.js â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Step "Checking Node.js..."
 
 $nodeInstalled = $false
@@ -71,7 +71,7 @@ if (-not $nodeInstalled) {
   }
 }
 
-# ── Check git ─────────────────────────────────────────────────
+# â”€â”€ Check git â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Step "Checking git..."
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
   if (Get-Command winget -ErrorAction SilentlyContinue) {
@@ -84,7 +84,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 Ok "git found."
 
-# ── Clone or update repository ────────────────────────────────
+# â”€â”€ Clone or update repository â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $RepoUrl = "https://github.com/adorbistech/banyantree.git"
 
 if (Test-Path (Join-Path $InstallDir ".git")) {
@@ -102,17 +102,17 @@ if (Test-Path (Join-Path $InstallDir ".git")) {
 
 Set-Location $InstallDir
 
-# ── Install dependencies ──────────────────────────────────────
+# â”€â”€ Install dependencies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Step "Installing dependencies (this may take 1-2 minutes)..."
 npm install --silent
 Ok "Dependencies installed."
 
-# ── Build ─────────────────────────────────────────────────────
+# â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Step "Building BanyanTree..."
 node build.js
 Ok "Build complete."
 
-# ── Create banyan CLI wrapper ─────────────────────────────────
+# â”€â”€ Create banyan CLI wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Step "Installing 'banyan' CLI..."
 
 $CliScript = Join-Path $BinDir "banyan.cmd"
@@ -137,7 +137,7 @@ if ($UserPath -notlike "*$BinDir*") {
   Ok "'banyan' already in PATH."
 }
 
-# ── Register runtime as Windows Scheduled Task ────────────────
+# â”€â”€ Register runtime as Windows Scheduled Task â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Step "Registering BanyanTree runtime (starts on login)..."
 
 $TaskName = "BanyanTree Runtime"
@@ -171,7 +171,7 @@ Register-ScheduledTask `
 Start-ScheduledTask -TaskName $TaskName
 Ok "Runtime daemon registered and started."
 
-# ── Install VS Code extension if VS Code is present ───────────
+# â”€â”€ Install VS Code extension if VS Code is present â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Step "Checking for VS Code..."
 if (Get-Command code -ErrorAction SilentlyContinue) {
   Step "Building VS Code extension..."
@@ -196,11 +196,11 @@ if (Get-Command code -ErrorAction SilentlyContinue) {
 
 Set-Location $InstallDir
 
-# ── Final output ──────────────────────────────────────────────
+# â”€â”€ Final output â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+Write-Host "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”" -ForegroundColor Green
 Ok "BanyanTree installed successfully."
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
+Write-Host "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”" -ForegroundColor Green
 Write-Host ""
 Info "Installation: $InstallDir"
 Info "Data:         $DataDir"
@@ -216,7 +216,7 @@ Write-Host ""
 Write-Host "  3. Fill in the seed document:" -ForegroundColor White
 Write-Host "     .banyan\seed.md  (inside your project)" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  4. Connect Claude Code — your project's .mcp.json:" -ForegroundColor White
+Write-Host "  4. Connect Claude Code â€” your project's .mcp.json:" -ForegroundColor White
 Write-Host '     { "mcpServers": { "banyantree": { "command": "banyan-mcp" } } }' -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  5. Health check:" -ForegroundColor White
