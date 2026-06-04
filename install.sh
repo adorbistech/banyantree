@@ -103,7 +103,7 @@ fi
 success "git $(git --version | awk '{print $3}') found."
 
 # ── Clone or update repository ────────────────────────────────
-REPO_URL="https://github.com/adorbis/banyantree.git"
+REPO_URL="https://github.com/adorbistech/banyantree.git"
 
 if [ -d "$INSTALL_DIR/.git" ]; then
   step "Updating existing BanyanTree installation..."

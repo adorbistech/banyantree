@@ -85,7 +85,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 Ok "git found."
 
 # ── Clone or update repository ────────────────────────────────
-$RepoUrl = "https://github.com/adorbis/banyantree.git"
+$RepoUrl = "https://github.com/adorbistech/banyantree.git"
 
 if (Test-Path (Join-Path $InstallDir ".git")) {
   Step "Updating existing BanyanTree installation..."
