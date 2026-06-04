@@ -75,7 +75,7 @@ npm install --silent
 Ok "Dependencies installed."
 
 Step "Building BanyanTree..."
-node build.js
+node build.cjs
 Ok "Build complete."
 
 # Create CLI wrappers

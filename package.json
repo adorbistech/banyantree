@@ -11,7 +11,7 @@
     "agents/*"
   ],
   "scripts": {
-    "build": "node build.js",
+    "build": "node build.cjs",
     "build:turbo": "turbo run build",
     "dev": "node apps/desktop-runtime/dist-flat/apps/desktop-runtime/src/index.js",
     "runtime": "node apps/desktop-runtime/dist-flat/apps/desktop-runtime/src/index.js",
