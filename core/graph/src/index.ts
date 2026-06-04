@@ -24,7 +24,7 @@
 import Database from 'better-sqlite3'
 import { normaliseFile } from './normaliser.js'
 import { GraphPersistence } from './persistence.js'
-import type { ParsedFile } from '../../services/parser/src/types.js'
+import type { ParsedFile } from './parser-types.js'
 import type {
   GraphEntity,
   GraphTraversalResult,
@@ -33,7 +33,7 @@ import type {
 } from './types.js'
 
 export type { GraphEntity, GraphRelationship, GraphTraversalResult, DependencyResult } from './types.js'
-export { makeEntityId, makeRelationshipId } from './identity.ts'
+export { makeEntityId, makeRelationshipId } from './identity.js'
 
 // ============================================================
 // SESSION CONTEXT

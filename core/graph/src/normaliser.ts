@@ -17,7 +17,7 @@
  * which ones to actually write based on the policy.
  */
 
-import type { ParsedFile } from '../../services/parser/src/types.js'
+import type { ParsedFile } from './parser-types.js'
 import type {
   GraphEntity,
   GraphRelationship,

@@ -14,10 +14,10 @@
  * The indexer's job is to feed the pipeline efficiently.
  */
 
-import { parseFile } from '../../services/parser/src/index.js'
-import { GraphEngine, type IngestContext } from '../../core/graph/src/index.js'
-import { RuntimeLogger } from '../../apps/desktop-runtime/src/logger.js'
-import type { EventBus, BusEvent } from '../../apps/desktop-runtime/src/event-bus.js'
+import { parseFile } from '../../parser/src/index.js'
+import { GraphEngine, type IngestContext } from '../../../core/graph/src/index.js'
+import { RuntimeLogger } from '../../../apps/desktop-runtime/src/logger.js'
+import type { EventBus, BusEvent } from '../../../apps/desktop-runtime/src/event-bus.js'
 import Database from 'better-sqlite3'
 
 export interface IndexerConfig {
@@ -99,8 +99,8 @@ export class Indexer {
       const result = await parseFile(absolutePath, this.config.repoRoot)
 
       if (!result.success) {
-        if (result.error.reason !== 'Path excluded by secrets policy') {
-          this.log.debug(`Parse skip: ${result.error.reason}`)
+        if ((result as any).error.reason !== 'Path excluded by secrets policy') {
+          this.log.debug(`Parse skip: ${(result as any).error.reason}`)
         }
         return
       }

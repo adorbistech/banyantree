@@ -55,7 +55,7 @@ writeFileSync(join(root, 'tsconfig.build.json'), JSON.stringify(combinedTsConfig
 
 console.log('[BANYAN] Compiling...')
 try {
-  execSync('npx tsc --project tsconfig.build.json --noEmitOnError false', {
+  execSync(`"${process.execPath}" node_modules/typescript/bin/tsc --project tsconfig.build.json --noEmitOnError false`, {
     cwd: root,
     stdio: 'inherit'
   })

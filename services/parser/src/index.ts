@@ -142,7 +142,7 @@ export async function parseFiles(
         slowFiles.push(path)
       }
     } else {
-      if (result.error.fatal) errorCount++
+      if (!result.success && (result as any).error.fatal) errorCount++
     }
   }
 

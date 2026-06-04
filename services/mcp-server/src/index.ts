@@ -106,11 +106,11 @@ async function main(): Promise<void> {
     })),
   }))
 
-  server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
+  server.setRequestHandler(CallToolRequestSchema, (async (request: any) => {
     const { name, arguments: args } = request.params
     process.stderr.write(`[BANYAN MCP] Tool: ${name}\n`)
     return await handleToolCall(name, (args ?? {}) as Record<string, unknown>, toolCtx)
-  })
+  }) as any)
 
   const transport = new StdioServerTransport()
   await server.connect(transport)
