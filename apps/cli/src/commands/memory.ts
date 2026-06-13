@@ -10,7 +10,7 @@ export function memoryCommand(): Command {
     .action(async (opts: { limit?: string }) => {
       const config = await loadConfig()
       if (!existsSync(config.dbPath)) { printError('Database not found.'); process.exit(1) }
-      const Database = require('better-sqlite3')
+      const { default: Database } = await import('better-sqlite3')
       const db = new Database(config.dbPath, { readonly: true })
       const rows = db.prepare("SELECT id, type, weight, content, created_at FROM memories WHERE status='active' ORDER BY created_at DESC LIMIT ?").all(parseInt(opts.limit ?? '20'))
       db.close()

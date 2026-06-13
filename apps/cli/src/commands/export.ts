@@ -62,7 +62,7 @@ export function exportCommand(): Command {
       // Build export payload
       // Phase 1: reads directly from SQLite
       // Phase 2: will go through the graph engine API
-      const exportData = buildExportPayload(config.dbPath, opts)
+      const exportData = await buildExportPayload(config.dbPath, opts)
 
       printStep(`Writing to: ${outputPath}`)
 
@@ -86,12 +86,12 @@ export function exportCommand(): Command {
     })
 }
 
-function buildExportPayload(
+async function buildExportPayload(
   dbPath: string,
   opts: { graphOnly?: boolean; memoryOnly?: boolean }
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
   // Lazy import to avoid loading SQLite when not needed
-  const Database = require('better-sqlite3')
+  const { default: Database } = await import('better-sqlite3')
   const db = new Database(dbPath, { readonly: true })
 
   try {

@@ -9,7 +9,7 @@ export function graphCommand(): Command {
     .action(async () => {
       const config = await loadConfig()
       if (!existsSync(config.dbPath)) { printError('Database not found.'); process.exit(1) }
-      const Database = require('better-sqlite3')
+      const { default: Database } = await import('better-sqlite3')
       const db = new Database(config.dbPath, { readonly: true })
       const nodes = (db.prepare("SELECT COUNT(*) as n FROM entities WHERE status='active'").get() as any).n
       const edges = (db.prepare("SELECT COUNT(*) as n FROM relationships WHERE status='active'").get() as any).n

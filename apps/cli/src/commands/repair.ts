@@ -32,7 +32,7 @@ export function validateCommand(): Command {
         process.exit(1)
       }
 
-      const issues = runValidation(config.dbPath)
+      const issues = await runValidation(config.dbPath)
 
       if (opts.json) {
         process.stdout.write(JSON.stringify({
@@ -85,7 +85,7 @@ export function repairCommand(): Command {
         print('Dry run — no changes will be made.')
       }
 
-      const issues = runValidation(config.dbPath)
+      const issues = await runValidation(config.dbPath)
 
       if (issues.length === 0) {
         printSuccess('Graph is healthy. No repairs needed.')
@@ -95,7 +95,7 @@ export function repairCommand(): Command {
       print(`Found ${issues.length} issues. Repairing...`)
       printRaw('')
 
-      const results = runRepairs(config.dbPath, issues, !!opts.dryRun)
+      const results = await runRepairs(config.dbPath, issues, !!opts.dryRun)
 
       for (const result of results) {
         const status = result.repaired ? '[REPAIRED]' : '[MANUAL REQUIRED]'
@@ -175,8 +175,8 @@ interface ValidationIssue {
   autoRepairable: boolean
 }
 
-function runValidation(dbPath: string): ValidationIssue[] {
-  const Database = require('better-sqlite3')
+async function runValidation(dbPath: string): Promise<ValidationIssue[]> {
+  const { default: Database } = await import('better-sqlite3')
   const db = new Database(dbPath, { readonly: true })
   const issues: ValidationIssue[] = []
 
@@ -284,12 +284,12 @@ interface RepairResult {
   note?: string
 }
 
-function runRepairs(
+async function runRepairs(
   dbPath: string,
   issues: ValidationIssue[],
   dryRun: boolean
-): RepairResult[] {
-  const Database = require('better-sqlite3')
+): Promise<RepairResult[]> {
+  const { default: Database } = await import('better-sqlite3')
   const db = dryRun ? new Database(dbPath, { readonly: true }) : new Database(dbPath)
   const results: RepairResult[] = []
 

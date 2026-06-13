@@ -12,7 +12,7 @@ export function inspectCommand(): Command {
     .action(async (opts: { type?: string; quarantined?: boolean; json?: boolean }) => {
       const config = await loadConfig()
       if (!existsSync(config.dbPath)) { printError('Database not found.'); process.exit(1) }
-      const Database = require('better-sqlite3')
+      const { default: Database } = await import('better-sqlite3')
       const db = new Database(config.dbPath, { readonly: true })
       const status = opts.quarantined ? 'quarantine' : 'active'
       const where = opts.type ? `AND type = '${opts.type}'` : ''
