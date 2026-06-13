@@ -82,17 +82,11 @@ async function startCognitionEngine(config: RuntimeConfig): Promise<void> {
   // Session observer — tracks AI sessions and extracts memory signals
   const observer = new SessionObserver(config, bus)
 
-  // Start components in order
+  // Start event bus first — all components depend on it
   await bus.start()
   log.info('Event bus started.')
 
-  await watcher.start()
-  log.info('File watcher started.')
-
-  await observer.start()
-  log.info('Session observer started.')
-
-  // ── SQLite database ───────────────────────────────────────
+  // ── SQLite database (must be ready before observer starts) ──
   const db = new Database(config.dbPath)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
@@ -213,6 +207,15 @@ async function startCognitionEngine(config: RuntimeConfig): Promise<void> {
     Date.now()
   )
   log.info(`Startup event written: ${startupEventId}`)
+
+  // ── Start file watcher and session observer ────────────────
+  // Started AFTER DB and bus listeners are wired so the initial
+  // session:started event is captured in the sessions table.
+  await watcher.start()
+  log.info('File watcher started.')
+
+  await observer.start()
+  log.info('Session observer started.')
 
   // Wire shutdown handlers
   process.on('SIGINT', () => shutdown(watcher, observer, bus, db))
