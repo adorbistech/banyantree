@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BanyanTree Mission Control</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+    --orange: #d18616;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-left svg { width: 32px; height: 32px; }
+
+  .wordmark {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .header-center {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+  }
+
+  .status-dot.healthy {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .status-dot.offline {
+    background: var(--red);
+    animation: none;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Offline banner ── */
+  .offline-banner {
+    display: none;
+    background: var(--red);
+    color: #fff;
+    text-align: center;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .offline-banner.visible { display: block; }
+
+  /* ── Main content ── */
+  .content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-card.warning { border-color: var(--yellow); }
+
+  .stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    line-height: 1.2;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Two columns ── */
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .panel-body {
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  /* ── Event list ── */
+  .event-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .event-row:last-child { border-bottom: none; }
+
+  .event-time {
+    color: var(--text-dim);
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: lowercase;
+    flex-shrink: 0;
+  }
+
+  .badge-green  { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-blue   { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .badge-purple { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .badge-yellow { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .badge-grey   { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+  .badge-orange { background: rgba(209,134,22,0.15); color: var(--orange); }
+
+  .event-detail {
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ── Entity list ── */
+  .entity-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .entity-row:last-child { border-bottom: none; }
+
+  .entity-path {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .entity-weight {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  /* ── Sessions table ── */
+  .sessions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .sessions-table th {
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sessions-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+  }
+
+  .sessions-table tr:last-child td { border-bottom: none; }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .empty-state {
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  /* ── Scrollbar ── */
+  .panel-body::-webkit-scrollbar { width: 6px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .columns { grid-template-columns: 1fr; }
+    .header { flex-wrap: wrap; gap: 8px; }
+    .header-center { order: 3; flex-basis: 100%; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Offline banner -->
+<div class="offline-banner" id="offlineBanner">Runtime offline -- start the daemon</div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="14" y="16" width="4" height="12" rx="1" fill="#3fb950"/>
+      <rect x="14" y="12" width="4" height="6" rx="1" fill="#3fb950" opacity="0.8"/>
+      <line x1="16" y1="14" x2="8" y2="6" stroke="#3fb950" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="16" y1="10" x2="24" y2="4" stroke="#3fb950" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="16" y1="18" x2="6" y2="14" stroke="#3fb950" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+      <line x1="16" y1="18" x2="26" y2="12" stroke="#3fb950" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+      <circle cx="8" cy="6" r="2.5" fill="#3fb950"/>
+      <circle cx="24" cy="4" r="2.5" fill="#3fb950"/>
+      <circle cx="6" cy="14" r="2" fill="#3fb950" opacity="0.6"/>
+      <circle cx="26" cy="12" r="2" fill="#3fb950" opacity="0.6"/>
+    </svg>
+    <span class="wordmark">BanyanTree <span style="color:var(--text-dim);font-weight:400">Mission Control</span></span>
+  </div>
+  <div class="header-center" id="repoPath">--</div>
+  <div class="header-right">
+    <span class="status-dot healthy" id="statusDot"></span>
+    <span id="uptimeLabel">Uptime: --</span>
+    <span style="color:var(--border)">|</span>
+    <span id="lastUpdated">Last updated: --</span>
+  </div>
+</header>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat-card" id="cardEntities">
+      <div class="stat-value" id="statEntities">--</div>
+      <div class="stat-label">Entities</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statRelationships">--</div>
+      <div class="stat-label">Relationships</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statSessions">--</div>
+      <div class="stat-label">Sessions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statEvents">--</div>
+      <div class="stat-label">Events</div>
+    </div>
+  </div>
+
+  <!-- Two columns -->
+  <div class="columns">
+    <!-- Activity feed -->
+    <div class="panel">
+      <div class="panel-header">Activity Feed</div>
+      <div class="panel-body" id="activityFeed">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Recent files -->
+    <div class="panel">
+      <div class="panel-header">Recent Entities</div>
+      <div class="panel-body" id="entityList">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sessions table -->
+  <div class="panel">
+    <div class="panel-header">Recent Sessions</div>
+    <div class="panel-body">
+      <table class="sessions-table">
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Started</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>Files</th>
+          </tr>
+        </thead>
+        <tbody id="sessionsBody">
+          <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer" id="footer">BanyanTree v-- | Local-first repository cognition</div>
+
+<script>
+(function() {
+  let lastFetchTime = 0;
+
+  function relativeTime(ts) {
+    if (!ts) return '--';
+    const diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 5) return 'just now';
+    if (diff < 60) return diff + 's ago';
+    if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function formatUptime(seconds) {
+    if (!seconds && seconds !== 0) return '--';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return h + 'h ' + m + 'm ' + s + 's';
+    if (m > 0) return m + 'm ' + s + 's';
+    return s + 's';
+  }
+
+  function shortenPath(p) {
+    if (!p) return '--';
+    const parts = p.replace(/\\/g, '/').split('/');
+    if (parts.length <= 3) return parts.join('/');
+    return '.../' + parts.slice(-3).join('/');
+  }
+
+  function eventBadgeClass(type) {
+    if (type === 'runtime_started') return 'badge-green';
+    if (type === 'session_started' || type === 'session_ended') return 'badge-blue';
+    if (type === 'node_created') return 'badge-purple';
+    if (type === 'node_quarantined') return 'badge-yellow';
+    return 'badge-grey';
+  }
+
+  function entityBadgeClass(type) {
+    if (type === 'function') return 'badge-blue';
+    if (type === 'class') return 'badge-purple';
+    if (type === 'file') return 'badge-grey';
+    if (type === 'decision') return 'badge-orange';
+    return 'badge-grey';
+  }
+
+  function payloadSummary(raw) {
+    if (!raw) return '';
+    try {
+      const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (obj.filePath) return shortenPath(obj.filePath);
+      if (obj.sessionId) return obj.sessionId.substring(0, 8) + '...';
+      if (obj.relativePath) return shortenPath(obj.relativePath);
+      return JSON.stringify(obj).substring(0, 60);
+    } catch { return String(raw).substring(0, 60); }
+  }
+
+  function filesCount(raw) {
+    if (!raw) return 0;
+    try {
+      const arr = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return Array.isArray(arr) ? arr.length : 0;
+    } catch { return 0; }
+  }
+
+  function setOnline(online) {
+    const dot = document.getElementById('statusDot');
+    const banner = document.getElementById('offlineBanner');
+    if (online) {
+      dot.className = 'status-dot healthy';
+      banner.className = 'offline-banner';
+    } else {
+      dot.className = 'status-dot offline';
+      banner.className = 'offline-banner visible';
+    }
+  }
+
+  function render(data) {
+    // Header
+    document.getElementById('repoPath').textContent = data.runtime.repo || '--';
+    document.getElementById('uptimeLabel').textContent = 'Uptime: ' + formatUptime(data.runtime.uptime);
+    document.getElementById('footer').textContent = 'BanyanTree v' + data.runtime.version + ' | Local-first repository cognition';
+
+    // Stats
+    document.getElementById('statEntities').textContent = data.graph.entities;
+    document.getElementById('statRelationships').textContent = data.graph.relationships;
+    document.getElementById('statSessions').textContent = data.graph.sessions;
+    document.getElementById('statEvents').textContent = data.graph.events;
+
+    const card = document.getElementById('cardEntities');
+    if (data.graph.entities === 0) {
+      card.classList.add('warning');
+    } else {
+      card.classList.remove('warning');
+    }
+
+    // Activity feed
+    const feed = document.getElementById('activityFeed');
+    if (data.recentEvents.length === 0) {
+      feed.innerHTML = '<div class="empty-state">No events yet</div>';
+    } else {
+      feed.innerHTML = data.recentEvents.map(function(ev) {
+        return '<div class="event-row">' +
+          '<span class="event-time">' + relativeTime(ev.created_at) + '</span>' +
+          '<span class="badge ' + eventBadgeClass(ev.type) + '">' + ev.type + '</span>' +
+          '<span class="badge badge-grey">' + (ev.actor || '--') + '</span>' +
+          '<span class="event-detail">' + payloadSummary(ev.payload) + '</span>' +
+          '</div>';
+      }).join('');
+    }
+
+    // Entity list
+    var entList = document.getElementById('entityList');
+    if (data.recentEntities.length === 0) {
+      entList.innerHTML = '<div class="empty-state">No entities yet</div>';
+    } else {
+      entList.innerHTML = data.recentEntities.map(function(ent) {
+        return '<div class="entity-row">' +
+          '<span class="badge ' + entityBadgeClass(ent.type) + '">' + (ent.type || '--') + '</span>' +
+          '<span class="entity-path" title="' + (ent.file_path || '') + '">' + (ent.name || shortenPath(ent.file_path)) + '</span>' +
+          '<span class="entity-weight">' + (ent.weight != null ? ent.weight.toFixed(1) : '--') + '</span>' +
+          '</div>';
+      }).join('');
+    }
+
+    // Sessions table
+    var tbody = document.getElementById('sessionsBody');
+    if (data.recentSessions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No sessions yet</td></tr>';
+    } else {
+      tbody.innerHTML = data.recentSessions.map(function(s) {
+        var dur = '--';
+        if (s.started_at && s.ended_at) {
+          dur = formatUptime(Math.floor((s.ended_at - s.started_at) / 1000));
+        } else if (s.started_at && s.status === 'active') {
+          dur = formatUptime(Math.floor((Date.now() - s.started_at) / 1000)) + ' (live)';
+        }
+        var statusClass = s.status === 'active' ? 'badge-green' : 'badge-grey';
+        return '<tr>' +
+          '<td>' + (s.id ? s.id.substring(0, 8) + '...' : '--') + '</td>' +
+          '<td>' + relativeTime(s.started_at) + '</td>' +
+          '<td>' + dur + '</td>' +
+          '<td><span class="badge ' + statusClass + '">' + (s.status || '--') + '</span></td>' +
+          '<td>' + filesCount(s.files_touched) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+  }
+
+  function fetchStatus() {
+    fetch('/api/status')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        lastFetchTime = Date.now();
+        setOnline(true);
+        render(data);
+      })
+      .catch(function() {
+        setOnline(false);
+      });
+  }
+
+  // Update "last updated" counter every second
+  setInterval(function() {
+    if (lastFetchTime) {
+      var ago = Math.floor((Date.now() - lastFetchTime) / 1000);
+      document.getElementById('lastUpdated').textContent = 'Updated ' + ago + 's ago';
+    }
+  }, 1000);
+
+  // Fetch on load, then every 10 seconds
+  fetchStatus();
+  setInterval(fetchStatus, 10000);
+})();
+</script>
+</body>
+</html>

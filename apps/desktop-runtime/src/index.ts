@@ -19,6 +19,8 @@ import { platform } from 'os'
 import { join } from 'path'
 import Database from 'better-sqlite3'
 import { randomUUID } from 'crypto'
+import { createServer, type Server as HttpServer } from 'http'
+import { readFileSync } from 'fs'
 
 const VERSION = '0.1.0'
 const log = new RuntimeLogger('runtime')
@@ -217,9 +219,56 @@ async function startCognitionEngine(config: RuntimeConfig): Promise<void> {
   await observer.start()
   log.info('Session observer started.')
 
+  // ── Mission Control HTTP server ───────────────────────────
+  const startTime = Date.now()
+
+  const httpServer = createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+
+    if (req.url === '/api/status') {
+      const status = {
+        runtime: {
+          version: VERSION,
+          uptime: Math.floor((Date.now() - startTime) / 1000),
+          platform: platform(),
+          repo: config.activeRepo,
+          repoId,
+        },
+        graph: {
+          entities: (db.prepare("SELECT COUNT(*) as n FROM entities WHERE status='active'").get() as any).n,
+          relationships: (db.prepare("SELECT COUNT(*) as n FROM relationships WHERE status='active'").get() as any).n,
+          memories: (db.prepare("SELECT COUNT(*) as n FROM memories WHERE status='active'").get() as any).n,
+          sessions: (db.prepare("SELECT COUNT(*) as n FROM sessions").get() as any).n,
+          events: (db.prepare("SELECT COUNT(*) as n FROM events").get() as any).n,
+        },
+        recentEvents: db.prepare("SELECT id, type, actor, payload, created_at FROM events ORDER BY created_at DESC LIMIT 20").all(),
+        recentEntities: db.prepare("SELECT id, type, name, file_path, weight, created_at FROM entities WHERE status='active' ORDER BY created_at DESC LIMIT 20").all(),
+        recentSessions: db.prepare("SELECT id, started_at, ended_at, status, files_touched FROM sessions ORDER BY started_at DESC LIMIT 5").all(),
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify(status))
+      return
+    }
+
+    // Serve dashboard HTML
+    try {
+      const dashboardPath = join(__dirname, '..', '..', '..', 'apps', 'dashboard', 'index.html')
+      const html = readFileSync(dashboardPath, 'utf8')
+      res.writeHead(200, { 'Content-Type': 'text/html' })
+      res.end(html)
+    } catch {
+      res.writeHead(404)
+      res.end('Dashboard not found')
+    }
+  })
+
+  httpServer.listen(config.mcpPort ?? 7842, '127.0.0.1', () => {
+    log.info(`Mission Control: http://localhost:${config.mcpPort ?? 7842}`)
+  })
+
   // Wire shutdown handlers
-  process.on('SIGINT', () => shutdown(watcher, observer, bus, db))
-  process.on('SIGTERM', () => shutdown(watcher, observer, bus, db))
+  process.on('SIGINT', () => shutdown(watcher, observer, bus, db, httpServer))
+  process.on('SIGTERM', () => shutdown(watcher, observer, bus, db, httpServer))
 
   log.info('Cognition engine active.')
   log.info(`Runtime healthy. Repo: ${repoId}`)
@@ -260,11 +309,16 @@ async function shutdown(
   observer: SessionObserver,
   bus: EventBus,
   db?: Database.Database,
+  httpServer?: HttpServer,
 ): Promise<void> {
   log.info('Shutdown signal received.')
   log.info('Flushing pending events...')
 
   try {
+    if (httpServer) {
+      httpServer.close()
+      log.info('HTTP server closed.')
+    }
     await observer.stop()
     await watcher.stop()
     await bus.stop()
