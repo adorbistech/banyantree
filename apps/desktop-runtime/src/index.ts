@@ -242,7 +242,7 @@ async function startCognitionEngine(config: RuntimeConfig): Promise<void> {
           events: (db.prepare("SELECT COUNT(*) as n FROM events").get() as any).n,
         },
         recentEvents: db.prepare("SELECT id, type, actor, payload, created_at FROM events ORDER BY created_at DESC LIMIT 20").all(),
-        recentEntities: db.prepare("SELECT id, type, name, file_path, weight, created_at FROM entities WHERE status='active' ORDER BY created_at DESC LIMIT 20").all(),
+        recentEntities: db.prepare("SELECT id, type, name, path as file_path, weight, created_at FROM entities WHERE status='active' ORDER BY created_at DESC LIMIT 20").all(),
         recentSessions: db.prepare("SELECT id, started_at, ended_at, status, files_touched FROM sessions ORDER BY started_at DESC LIMIT 5").all(),
       }
       res.writeHead(200, { 'Content-Type': 'application/json' })
